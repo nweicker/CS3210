@@ -1,5 +1,5 @@
-# error code to message conversion function
-def error_message(code=99):
+# error code to message conversion function with optional code number
+def error_message(code=""):
 
     # prevent errors from non-numeric error codes
     if type(code) is not int:
