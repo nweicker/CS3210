@@ -7,9 +7,6 @@ import sys
 from enum import IntEnum
 import re       # regular expressions
 
-# TODO: remove import and put code in parser file
-#from Program1.lex import *
-
 # squash traceback reporting on errors
 sys.tracebacklimit = 0
 
@@ -147,58 +144,109 @@ class Tree:
                 else:
                     print(tab + child)
 
-
 #######################################################################
 #   Functions
 #######################################################################
 
 # error code to message conversion function with optional code number
-def error_message(code=""):
+def error_message(code=None):
 
     # prevent errors from missing or non-numeric error codes
     if type(code) is not int or not code:
         code = 99
-
     raise Exception(errors[code])
 
 
-# receives text and separates it into a list of valid words
-def get_lexemes(text, word="", lexemes=[]):
+# receives text and separates it into a list of valid lexemes
+def get_lexemes(text, word="", list=[]):
 
     # stop recursion at end of text;  add word if it exists
     if len(text) == 0:
-        if word:
-            lexemes.append(word)
-        return lexemes
+        list.append(word)
+        return list
 
     # end words at spaces
-    if text[0] in "\n \t \r":
-        if word:
-            lexemes.append(word)
-            word = ""
+    if text[0] in (""," ", ' ', "\n", "\t", "\r"):
+        list.append(word)
+        word = ""
+        print("word: ", word)
 
     # continue words for alphanumeric characters
     elif text[0].isalnum():
         word += text[0]
 
-    # check for 2-symbol operators  NOTE:
+    # check for 2-symbol operators
+    #   (note that the slice will not cause index error on length < 2)
     elif text[0:2] in ("==", "!=", "<=", ">=", "&&", "||"):
-        lexemes.append(text[0:2])
+
+        # add word to list if it exists
+        list.append(word)
+        word = ""
+
+        # add 2-character symbol to list
+        list.append(text[0:2])
+
+        # reduce text by an extra digit
         text = text[1:]
 
     # add symbols as their own lexemes
     # (reference the lexeme table in case a symbol is changed later)
-    elif text[0] in lex_table.keys():
-        if word:
-            lexemes.append(word)
-            word = ""
-        lexemes.append(text[0])
+    elif text[0].lower() in lex_table.keys():
+
+        # add word to list (if it exists) and clear the word
+        list.append(word)
+        word = ""
+
+        # add symbol to list
+        list.append(text[0])
 
     else:
-        return "Unrecognized character"
-#    print("", text, " ", "", word, "", lexemes)
-    return get_lexemes(text[1:], word, lexemes)
+        return f"Unrecognized character: {text[0]}"
 
+    # remove first character from text and repeat
+    return get_lexemes(text[1:], word, list)
+
+
+def lex_lookup(lexeme, code="token"):
+
+    # quit if code is invalid
+    if code not in ("token", "error"):
+        raise Exception
+
+    # if the lexeme is in the list, return its token or error code
+    if lexeme in lex_table.keys():
+        if code == "token":
+            # return type is Token
+            return Token(lex_table[lexeme][0])
+        else:
+            # no return
+            error_message(lex_table[lexeme][1])
+
+    # if the lexeme isn't in the list, compare to the literal patterns
+    else:
+        # Token.IDENTIFIER      <letter> { <letter> | <digit> }
+        # Token.INT_LITERAL     <digit> { <digit> }
+        # Token.FLOAT_LITERAL   <int_literal> . <int_literal>
+        # Token.CHAR_LITERAL    ' <letter> '
+
+        patterns = [
+            (Token.IDENTIFIER, "[a-z][a-z|0-9]*", 16),
+            (Token.INT_LITERAL, "[0-9]+", 14),
+            (Token.FLOAT_LITERAL, "[0-9]+\.[0-9]+", 4),
+            (Token.CHAR_LITERAL, "\'[a-z]\'", 5)
+            ]
+
+        # compare lexeme (as a string) against the regex for each pattern
+        for i in patterns:
+            # evaluates True if the string exactly matches the pattern
+            if bool(re.fullmatch(i[1], str(lexeme))):
+                if code == "token":
+                    return i[0]
+                else:
+                    error_message(i[2])
+
+       # if no match, return lexical error
+        error_message(3)
 
 #######################################################################
 #   Main
@@ -211,10 +259,7 @@ if __name__ == "__main__":
     source = open(sys.argv[1], "rt")
     if not source:
         error_message(2)
+
     # The language is not case-sensitive so convert all to lowercase
     file_contents = source.read().lower()
     source.close()
-
-    lexemes = get_lexemes(file_contents)
-    for n in lexemes:
-        print(n)
