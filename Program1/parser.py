@@ -86,4 +86,12 @@ class Tree:
 
 # main
 if __name__ == "__main__":
-        pass
+
+    # Check for source file
+    if len(sys.argv) != 2:
+            # TODO: reference error table
+            pass
+    source = open(sys.argv[1], "rt")
+    # The language is not case-sensitive so convert all to lowercase
+    file_contents = source.read().lower()
+    source.close()
