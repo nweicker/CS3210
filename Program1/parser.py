@@ -6,8 +6,12 @@
 import sys
 from enum import IntEnum
 
+# TODO: remove import and put code in parser file
+from Program1.lex import *
+
 # squash traceback reporting on errors
 sys.tracebacklimit = 0
+
 
 # all char classes
 class CharClass(IntEnum):
@@ -61,6 +65,7 @@ class Token(IntEnum):
     FLOAT_LITERAL = 34
     CHAR_LITERAL = 35
 
+
 # structure the parse tree
 class Tree:
 
@@ -95,3 +100,4 @@ if __name__ == "__main__":
     # The language is not case-sensitive so convert all to lowercase
     file_contents = source.read().lower()
     source.close()
+
