@@ -3,19 +3,16 @@
 #   Nicole Weickert
 #   Myke Walker
 
+# squash traceback reporting on errors
+# sys.tracebacklimit = 0
+
 import sys
 from enum import IntEnum
 import re       # regular expressions
 
-# squash traceback reporting on errors
-sys.tracebacklimit = 0
-
-#######################################################################
-#   Lookup Tables
-#######################################################################
-
-# Tokens
+#### Lookup Tables #####################################################
 class Token(IntEnum):
+# Token table from specifications
     EOF = 0
     INT_TYPE = 1
     MAIN = 2
@@ -53,8 +50,8 @@ class Token(IntEnum):
     FLOAT_LITERAL = 34
     CHAR_LITERAL = 35
 
-# Errors
 errors = {
+# Error Table from Specifications
     1: "Source file missing",
     2: "Couldn't open source file",
     3: "Lexical error",
@@ -81,9 +78,9 @@ errors = {
     24: "boolean expected",
     99: "syntax error"
 }
-
-# Lexemes   (each value is a tuple of the key's (token id, error code)
-lex_table = {
+lookup_table = {
+# Symbol-Token-Error Join Table
+    # (each value is a tuple of the key's (token id, error code)
     "": (0, 6),
     "int": (1, 12),
     "main": (2, 11),
@@ -117,13 +114,113 @@ lex_table = {
     "true": (32, 24),
     "false": (33, 24)
 }
+regex_patterns = {
+    # float must come before integer or partial matches may be inaccurate
+    "IDENTIFIER": "[a-z|A-Z][a-z|A-Z|0-9]*",
+    "FLOAT_LITERAL": "[0-9]+\.[0-9]+",
+    "INT_LITERAL": "[0-9]+",
+    "CHAR_LITERAL": "\'[a-z|A-Z]\'"
+}
 
-#######################################################################
-#   Objects
-#######################################################################
+#### Functions #########################################################
+def add_tuple(list, text):
+    if text in lookup_table.keys():
+        list.append((lookup(text), text))
 
-# structure the parse tree
+    elif bool(pattern_match(text)):
+        token = str(Token[pattern_match(text)])
+        list.append((token, text))
+    return list
+
+def error_message(code=None):
+# receives error code and calls an error with the appropriate message
+
+    # prevent errors from missing, non-numeric, or invalid error codes
+    if not code in errors.keys():
+        code = 99
+    raise Exception(errors[code])
+    quit()
+
+def lookup(expression, column=""):
+
+    record = lookup_table.get(expression)
+
+    if column == "error":
+        print("error_message(",record[1],")")
+    else:
+        return  str(Token(record[0]))
+
+def pattern_match(expression, partial=False):
+#   Evaluate input and return the name of a matching pattern (or None)
+#
+#   Partial (optional)
+#       By default, the function requires an exact match to the whole string.
+#       If 'partial' is True, it will allow a partial match from the start
+#       Partial returns the name of the pattern AND its length.
+
+    # compare against all patterns, return the first match or None
+    match = None
+    for pattern in regex_patterns.items():
+        if not partial:
+            if bool(re.fullmatch(pattern[1], expression)):
+                # on full match, return pattern name
+                match = pattern[0]
+                break
+        else:
+            # check for a partial match starting from first character
+            partial_match = (re.match(pattern[1], expression))
+
+            # save the matching substring (without whitespace) as partial_match
+            if partial_match:
+                partial_match = partial_match.group(0).rstrip()
+
+                # return pattern name and length of matching substring
+                match = (pattern[0], len(partial_match))
+                break
+    return match
+
+def split_list_item(list, text):
+
+    if text[0:2] in lookup_table.keys():
+        list = add_tuple(list, text[0:2])
+        text = text[2:]
+
+    elif text[0] in lookup_table.keys():
+        list = add_tuple(list, text[0])
+        text = text[1:]
+    return list, text
+
+def text_to_tokens(text):
+    lexemes = text.split()
+    tokens = []
+
+    # Loop through list
+    i = -1
+    while i < len(lexemes)-1:
+        i += 1
+        text = lexemes[i]
+
+        # for items that match a Token key or pattern, replace with tuple
+        if text in lookup_table.keys() or \
+           bool(pattern_match(text)):
+            tokens = add_tuple(tokens, text)
+            continue
+
+        # for items that don't match a Token or pattern, split into smaller units
+        else:
+            while len(text) > 0:
+                partial = pattern_match(text, True)
+                if bool(partial):
+                    tokens.append((str(Token[partial[0]]), text[0:partial[1]]))
+                    text = text[partial[1]:]
+                else:
+                    list, text = split_list_item(tokens, text)
+    tokens.append((str(Token.EOF), "$"))
+    return tokens
+
+#### Parse Tree ########################################################
 class Tree:
+# structure the parse tree
 
     TAB = "   "
 
@@ -144,113 +241,8 @@ class Tree:
                 else:
                     print(tab + child)
 
-#######################################################################
-#   Functions
-#######################################################################
 
-# error code to message conversion function with optional code number
-def error_message(code=None):
-
-    # prevent errors from missing or non-numeric error codes
-    if type(code) is not int or not code:
-        code = 99
-    raise Exception(errors[code])
-
-
-# receives text and separates it into a list of valid lexemes
-def get_lexemes(text, word="", list=[]):
-
-    # stop recursion at end of text;  add word if it exists
-    if len(text) == 0:
-        list.append(word)
-        return list
-
-    # end words at spaces
-    if text[0] in (""," ", ' ', "\n", "\t", "\r"):
-        list.append(word)
-        word = ""
-        print("word: ", word)
-
-    # continue words for alphanumeric characters
-    elif text[0].isalnum():
-        word += text[0]
-
-    # check for 2-symbol operators
-    #   (note that the slice will not cause index error on length < 2)
-    elif text[0:2] in ("==", "!=", "<=", ">=", "&&", "||"):
-
-        # add word to list if it exists
-        list.append(word)
-        word = ""
-
-        # add 2-character symbol to list
-        list.append(text[0:2])
-
-        # reduce text by an extra digit
-        text = text[1:]
-
-    # add symbols as their own lexemes
-    # (reference the lexeme table in case a symbol is changed later)
-    elif text[0].lower() in lex_table.keys():
-
-        # add word to list (if it exists) and clear the word
-        list.append(word)
-        word = ""
-
-        # add symbol to list
-        list.append(text[0])
-
-    else:
-        return f"Unrecognized character: {text[0]}"
-
-    # remove first character from text and repeat
-    return get_lexemes(text[1:], word, list)
-
-
-def lex_lookup(lexeme, code="token"):
-
-    # quit if code is invalid
-    if code not in ("token", "error"):
-        raise Exception
-
-    # if the lexeme is in the list, return its token or error code
-    if lexeme in lex_table.keys():
-        if code == "token":
-            # return type is Token
-            return Token(lex_table[lexeme][0])
-        else:
-            # no return
-            error_message(lex_table[lexeme][1])
-
-    # if the lexeme isn't in the list, compare to the literal patterns
-    else:
-        # Token.IDENTIFIER      <letter> { <letter> | <digit> }
-        # Token.INT_LITERAL     <digit> { <digit> }
-        # Token.FLOAT_LITERAL   <int_literal> . <int_literal>
-        # Token.CHAR_LITERAL    ' <letter> '
-
-        patterns = [
-            (Token.IDENTIFIER, "[a-z][a-z|0-9]*", 16),
-            (Token.INT_LITERAL, "[0-9]+", 14),
-            (Token.FLOAT_LITERAL, "[0-9]+\.[0-9]+", 4),
-            (Token.CHAR_LITERAL, "\'[a-z]\'", 5)
-            ]
-
-        # compare lexeme (as a string) against the regex for each pattern
-        for i in patterns:
-            # evaluates True if the string exactly matches the pattern
-            if bool(re.fullmatch(i[1], str(lexeme))):
-                if code == "token":
-                    return i[0]
-                else:
-                    error_message(i[2])
-
-       # if no match, return lexical error
-        error_message(3)
-
-#######################################################################
-#   Main
-#######################################################################
+#########  Main ########################################################
 if __name__ == "__main__":
 
     # Check for source file
@@ -259,7 +251,10 @@ if __name__ == "__main__":
     source = open(sys.argv[1], "rt")
     if not source:
         error_message(2)
-
-    # The language is not case-sensitive so convert all to lowercase
-    file_contents = source.read().lower()
+    file_contents = source.read()
     source.close()
+
+    tree = text_to_tokens(file_contents)
+
+    for token in tree:
+        print(token)
