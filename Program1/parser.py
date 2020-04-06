@@ -121,6 +121,9 @@ regex_patterns = {
     "INT_LITERAL": "[0-9]+",
     "CHAR_LITERAL": "\'[a-z|A-Z]\'"
 }
+keywords = ["int", "main", "if", "else", "while", "bool", "float",
+            "char", "true", "false"]
+
 
 #### Functions #########################################################
 def add_tuple(list, text):
@@ -167,6 +170,11 @@ def pattern_match(expression, partial=False):
                 match = pattern[0]
                 break
         else:
+            for key in keywords:
+                if re.match(key, expression):
+                    match = key[1], len(key[1])
+                break
+
             # check for a partial match starting from first character
             partial_match = (re.match(pattern[1], expression))
 
