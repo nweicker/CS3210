@@ -208,8 +208,15 @@ def text_to_tokens(text):
         i += 1
         text = lexemes[i]
 
+        #print(text)
+
+        if text[0:4] == "main":
+            tokens.append((str(Token.MAIN), "main"))
+            text = text[4:]
+            continue
+
         # for items that match a Token key or pattern, replace with tuple
-        if text in lookup_table.keys() or \
+        elif text in lookup_table.keys() or \
            bool(pattern_match(text)):
             tokens = add_tuple(tokens, text)
             continue
