@@ -25,3 +25,14 @@ Queen's attack
 	row minus column
 -diag2
 	row plus column
+
+The Plan
+1) Start in the leftmost column
+2) Check if all queens are placed, if so return true
+3) Test every row for a possible queens 
+   While testing rows check for the following:
+    a) Can the queen be placed here without attack? Save space [row, column] and recursively check if Queen's placement leads to a solution.
+    b) If this placement leads to a solution return true
+    c) If not unmark [row, column] and backtrack to step a) with another row
+3) If no rows work trigger false and trigger backtrack 
+
