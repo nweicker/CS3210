@@ -1,0 +1,27 @@
+Backtracking Problem
+
+Choose
+Explore
+Rechoose 
+
+Our goal
+-Queens in non attacked places
+
+Our Choice
+-Where a new queen is placed
+
+Our constraints
+-An already threatened space
+
+Undo Choice
+-Once a choice is made undo it
+
+Queen's attack
+-row
+	all spaces that share the (X,Y) same X
+-column
+	all spaces that share the (X,Y) same Y
+-diag1
+	row minus column
+-diag2
+	row plus column
