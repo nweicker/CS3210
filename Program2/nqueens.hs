@@ -1,75 +1,118 @@
--- CS 3210 - Principles of Programming Languages
--- Project 2
+-- CS 3210 - Principles of Programming Languages - Spring 2020
+-- Programming Assignment 02 - The N-queens Problem
 -- Authors:
 --    Nicole Weickert
 --    Myke Walker
 
-type Seq = [Char]
+{-# LANGUAGE ParallelListComp #-}
+
+
+import Data.List
+
+type Seq   = [Char]
 type Board = [Seq]
 
---mainDiagIndices takes a board and a diagonal index and returns a sequence of tuples with the coordinates of the locations that are in the primary diagonal. 
-mainDiagIndices :: Board -> Int -> [ (Int, Int) ]
+-- TODO 01/17
+realGrid :: (Int, Int, [[Char]] ) -> [[Char]]
+realGrid  (c,i,l) | c == i = l
+                  | otherwise = realGrid (c, i+1, l ++ [concat (replicate c "-")])
 
---secDiagIndices takes a board and a diagonal index and returns a sequence of tuples with the coordinates of the locations that are in the secondary diagonal. 
-secDiagIndices :: Board -> Int -> [ (Int, Int) ]
-
---setup takes an integer n >= 4 and creates an nxn board with all locations empty.  If n < 4 setup should return a 4x4 board
 setup :: Int -> Board
+setup n = realGrid( max n 4, 0, [])
 
---rows takes a board and returns its number of rows. 
+-- TODO 02/17
 rows :: Board -> Int
+rows b = length b
 
---cols takes a board and returns its number of columns if all rows have the same number of columns; it returns zero, otherwise. 
+-- TODO 03/17
 cols :: Board -> Int
+cols b = 0
 
---size takes a board and returns its size, which is the same as its number of rows (if it matches its number of columns), or zero, otherwise. 
+-- TODO 04/17
 size :: Board -> Int
+size b = 0
 
---queensSeq takes a sequence and returns the number of queens found in it. 
+-- TODO 05/17
 queensSeq :: Seq -> Int
+queensSeq s = 0
 
---queensBoard takes a board and returns the number of queens found in it. 
-queensBoard :: Board -> Int 
+-- TODO 06/17
+queensBoard :: Board -> Int
+queensBoard b = 0
 
---seqValid takes a sequence and returns true/false depending whether the sequence no more than 1 queen. 
+-- TODO 07/17
 seqValid :: Seq -> Bool
+seqValid s = False
 
---rowsValid takes a board and returns true/false depending whether ALL of its rows correspond to valid sequences. 
+-- TODO 08/17
 rowsValid :: Board -> Bool
+rowsValid b = False
 
---colsValid takes a board and returns true/false depending whether ALL of its columns correspond to valid sequences. 
+-- TODO 09/17
 colsValid :: Board -> Bool
+colsValid b = False
 
---diagonals takes a board and returns its number of primary (or secondary) diagonals. If a board has size n, its number of diagonals is given by the formula: 2 x n - 1.
+-- TODO 10/17
 diagonals :: Board -> Int
+diagonals b = 0
 
---allMainDiagIndices takes a board and returns a list of all primary diagonal indices.  
+mainDiagIndices :: Board -> Int -> [ (Int, Int) ]
+mainDiagIndices b p
+  | p < n = [ (n - 1 - qr, q) | q <- [0..p] | qr <- [p,p-1..0] ]
+  | otherwise = [ (q, (n - 1 - qr)) | q <- [0..2 * (n - 1) - p] | qr <- [2 * (n - 1) - p,2 * (n - 1) - p - 1..0] ]
+  where n = size b
+
+-- TODO 11/17
 allMainDiagIndices :: Board -> [[ (Int, Int) ]]
+allMainDiagIndices b = [[]]
 
---mainDiag takes a board and returns a list of all primary diagonal elements.  
+-- TODO 12/17
 mainDiag :: Board -> [Seq]
+mainDiag b = []
 
---allSecDiagIndices takes a board and returns a list of all secondary diagonal indices.  
+secDiagIndices :: Board -> Int -> [ (Int, Int) ]
+secDiagIndices b p
+  | p < n = [ (p - q, q) | q <- [0..p] ]
+  | otherwise = [ (p - (n - 1 - q), n - 1 - q) | q <- [2 * (n - 1) - p, 2 * (n - 1) - p - 1..0] ]
+  where n = size b
+
+-- TODO 13/17
 allSecDiagIndices :: Board -> [[ (Int, Int) ]]
+allSecDiagIndices b = [[]]
 
---secDiag takes a board and returns a list of all secondary diagonal elements.  
+-- TODO 14/17
 secDiag :: Board -> [Seq]
+secDiag b = []
 
---diagsValid takes a board and returns true/false depending whether all of its primary and secondary diagonals are valid. 
+-- TODO 15/17
 diagsValid :: Board -> Bool
+diagsValid b = False
 
---valid takes a board and returns true/false depending whether the board configuration is valid (i.e., no queen is threatening another queen). 
+-- TODO 16/17
 valid :: Board -> Bool
+valid b = False
 
---solved takes a board and returns true/false depending whether the board configuration is solved (i.e., the configuration is valid and also has the right amount of queens based on the board’s size). 
+-- TODO 17/17 (¡Phew!)
 solved :: Board -> Bool
+solved b = False
 
---setQueenAt takes a board and returns a list of new board configurations, each with a queen added at all of the possible columns of a given row index. 
 setQueenAt :: Board -> Int -> [Board]
+setQueenAt b i = do
+  let z = replicate ((size b) - 1) '-'
+  let p = nub (permutations ("Q" ++ z))
+  [ [ (b!!k) | k <- [0..(i-1)] ] ++ [r] ++ [ (b!!k) | k <- [(i+1)..((rows b) - 1)] ] | r <- p ]
 
---nextRow takes a board and returns the first row index (from top to bottom) that does not have any queen.  
 nextRow :: Board -> Int
+nextRow b = head [ i | i <- [0 .. (size b) - 1], queensSeq (b!!i) == 0 ]
 
---solve takes a board and returns ALL of the board configurations that solve the n-queens puzzle. 
 solve :: Board -> [Board]
+solve b
+  | solved b = [b]
+  | otherwise = concat [ solve newB | newB <- setQueenAt b i, valid newB ]
+    where i = nextRow b
+
+main = do
+  let b = setup 6
+  let solution = [ solution | solution <- solve b ]
+  print (solution)
 
