@@ -26,27 +26,37 @@ rows b = length b
 
 -- TODO 03/17
 cols :: Board -> Int
-cols b = 0
+cols b | length b == 1 = length ( head b )
+       | length (head b) == length (head (tail b)) = cols(tail b)
+       | length b == 0 = 0
+       | otherwise = 0
 
 -- TODO 04/17
 size :: Board -> Int
-size b = 0
+size b | cols b < 0 = rows b
+       | otherwise = 0
 
 -- TODO 05/17
-queensSeq :: Seq -> Int
-queensSeq s = 0
+isQ :: Char -> Int
+isQ  x | x == 'Q' = 1
+       | otherwise = 0
+
+queensSeq :: (Seq) -> Int
+queensSeq x = foldl1 (+) (map isQ x)
 
 -- TODO 06/17
-queensBoard :: Board -> Int
-queensBoard b = 0
+queensBoard :: (Board) -> Int
+queensBoard x = foldl1 (+) (map queensSeq x)
+
 
 -- TODO 07/17
 seqValid :: Seq -> Bool
-seqValid s = False
+seqValid s | queensSeq s >= 2 = False
+           | otherwise = True
 
 -- TODO 08/17
 rowsValid :: Board -> Bool
-rowsValid b = False
+rowsValid b = foldl1 (&&) (map seqValid b)
 
 -- TODO 09/17
 colsValid :: Board -> Bool
