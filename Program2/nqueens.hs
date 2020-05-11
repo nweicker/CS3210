@@ -33,7 +33,7 @@ cols b | length b == 1 = length ( head b )
 
 -- TODO 04/17
 size :: Board -> Int
-size b | cols b < 0 = rows b
+size b | cols b > 0 = rows b
        | otherwise = 0
 
 -- TODO 05/17
@@ -60,11 +60,14 @@ rowsValid b = foldl1 (&&) (map seqValid b)
 
 -- TODO 09/17
 colsValid :: Board -> Bool
-colsValid b = False
+colsValid b = (rowsValid . transpose) b
 
 -- TODO 10/17
 diagonals :: Board -> Int
-diagonals b = 0
+diagonals b | length b == 1 = (2* (length ( head b )) -1)
+            | length (head b) == length (head (tail b)) = (2* cols(tail b) -1)
+            | length b == 0 = 0
+            | otherwise = 0
 
 mainDiagIndices :: Board -> Int -> [ (Int, Int) ]
 mainDiagIndices b p
@@ -74,11 +77,15 @@ mainDiagIndices b p
 
 -- TODO 11/17
 allMainDiagIndices :: Board -> [[ (Int, Int) ]]
-allMainDiagIndices b = [[]]
+allMainDiagIndices b = map (mainDiagIndices b ) [0..n] 
+  where n = diagonals b
 
 -- TODO 12/17
+dashMake :: Int -> Seq
+dashMake x = concat (replicate x "-")
+
 mainDiag :: Board -> [Seq]
-mainDiag b = []
+mainDiag b = map (dashMake) (map (length) (allMainDiagIndices b))
 
 secDiagIndices :: Board -> Int -> [ (Int, Int) ]
 secDiagIndices b p
@@ -88,23 +95,41 @@ secDiagIndices b p
 
 -- TODO 13/17
 allSecDiagIndices :: Board -> [[ (Int, Int) ]]
-allSecDiagIndices b = [[]]
+allSecDiagIndices b = map (secDiagIndices b ) [0..n] 
+  where n = diagonals b
 
 -- TODO 14/17
 secDiag :: Board -> [Seq]
-secDiag b = []
+secDiag b = map (dashMake) (map (length) (allSecDiagIndices b))
 
 -- TODO 15/17
+queenNumb :: [Char] -> Int -> [Int]
+queenNumb r i
+        | length r == 0 = []
+        | head r == 'Q' = i:(queenNumb (tail r) (i+1)) 
+        | otherwise = (queenNumb (tail r) (i+1))
+
+queenCords :: Board -> Int -> [(Int,Int)]
+queenCords b j
+        | length b == 0 = []
+        | otherwise =  [(x,y) | y <- [j], x <- queenNumb (head b) 0 ] ++ queenCords (tail b) (j+1)
+
+mainDiagsValid :: Board -> Bool
+mainDiagsValid x = foldr1 (&&) [ length (intersect a b) < 2| a <- [queenCords x 0], b <- (allMainDiagIndices x) ]
+
+secDiagsValid :: Board -> Bool
+secDiagsValid x = foldr1 (&&) [ length (intersect a b) < 2| a <- [queenCords x 0], b <- (allSecDiagIndices x) ]
+
 diagsValid :: Board -> Bool
-diagsValid b = False
+diagsValid b = mainDiagsValid b && secDiagsValid b
 
 -- TODO 16/17
 valid :: Board -> Bool
-valid b = False
+valid b = (diagsValid b && rowsValid b) && colsValid b
 
 -- TODO 17/17 (¡Phew!)
 solved :: Board -> Bool
-solved b = False
+solved b = valid b && (queensBoard b == size b)
 
 setQueenAt :: Board -> Int -> [Board]
 setQueenAt b i = do
@@ -122,7 +147,7 @@ solve b
     where i = nextRow b
 
 main = do
-  let b = setup 6
+  let b = setup 4
   let solution = [ solution | solution <- solve b ]
   print (solution)
 
